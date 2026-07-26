@@ -2,10 +2,18 @@ from flask import Flask, render_template, request, jsonify, send_file
 import os
 import subprocess
 import zipfile
+import tempfile
+import shutil
 
 app = Flask(__name__)
-UPLOAD_FOLDER = 'uploads'
-OUTPUT_FOLDER = 'outputs'
+
+# កំណត់ទំហំអតិបរមានៃការ Upload ដល់ 2GB (2 * 1024 * 1024 * 1024 bytes)
+app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024 * 1024
+
+# បង្កើត Temporary Directory សុវត្ថិភាពសម្រាប់ដំណើរការបណ្តោះអាសន្ន
+TEMP_DIR = tempfile.mkdtemp()
+UPLOAD_FOLDER = os.path.join(TEMP_DIR, 'uploads')
+OUTPUT_FOLDER = os.path.join(TEMP_DIR, 'outputs')
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
@@ -33,22 +41,17 @@ def split_video():
     data = request.get_json()
     filename = data.get('filename')
     mode = data.get('mode', 'equal')
+    output_format = data.get('format', 'mp4').lower()
     
     video_path = os.path.join(UPLOAD_FOLDER, filename)
     
     if not os.path.exists(video_path):
         return jsonify({'success': False, 'error': 'File not found'})
 
-    # លុបឯកសារចាស់ចោលជាមុនសិន
-    for f in os.listdir(OUTPUT_FOLDER):
-        if f.startswith('part_') or f.startswith('custom_'):
-            try:
-                os.remove(os.path.join(OUTPUT_FOLDER, f))
-            except:
-                pass
+    ext = output_format if output_format in ['mp4', 'webm', 'mkv'] else 'mp4'
 
     if mode == 'equal':
-        parts = int(data.get('parts', 4))
+        parts = int(data.get('parts', 3))
         probe_command = [
             'ffprobe', '-v', 'error', '-show_entries',
             'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', video_path
@@ -59,22 +62,22 @@ def split_video():
         except Exception:
             duration = 60.0
         segment_duration = duration / parts
-        output_pattern = os.path.join(OUTPUT_FOLDER, 'part_%03d.mp4')
+        output_pattern = os.path.join(OUTPUT_FOLDER, f'part_%03d.{ext}')
         
         command = [
             'ffmpeg', '-y', '-i', video_path, '-c', 'copy', 
-            '-map', '0', '-segment_time', str(segment_duration), 
+            '-segment_time', str(segment_duration), 
             '-f', 'segment', '-reset_timestamps', '1', output_pattern
         ]
         subprocess.run(command)
 
     elif mode == 'duration':
         seg_duration = str(data.get('duration', '60'))
-        output_pattern = os.path.join(OUTPUT_FOLDER, 'part_%03d.mp4')
+        output_pattern = os.path.join(OUTPUT_FOLDER, f'part_%03d.{ext}')
         
         command = [
             'ffmpeg', '-y', '-i', video_path, '-c', 'copy', 
-            '-map', '0', '-segment_time', seg_duration, 
+            '-segment_time', seg_duration, 
             '-f', 'segment', '-reset_timestamps', '1', output_pattern
         ]
         subprocess.run(command)
@@ -91,7 +94,7 @@ def split_video():
             start = 0.0
             points.append(None)
             for i, p in enumerate(points):
-                out_file = os.path.join(OUTPUT_FOLDER, f'custom_part_{i+1:03d}.mp4')
+                out_file = os.path.join(OUTPUT_FOLDER, f'custom_part_{i+1:03d}.{ext}')
                 if p is not None:
                     cmd = ['ffmpeg', '-y', '-ss', str(start), '-to', str(p), '-i', video_path, '-c', 'copy', out_file]
                     start = p
@@ -102,6 +105,33 @@ def split_video():
     files_list = sorted([f for f in os.listdir(OUTPUT_FOLDER) if f.startswith('part_') or f.startswith('custom_')])
     
     return jsonify({'success': True, 'segments': files_list})
+
+@app.route('/crop', methods=['POST'])
+def crop_video():
+    data = request.get_json()
+    filename = data.get('filename')
+    aspect_ratio = data.get('aspect_ratio', '16:9')
+    
+    video_path = os.path.join(UPLOAD_FOLDER, filename)
+    if not os.path.exists(video_path):
+        return jsonify({'success': False, 'error': 'File not found'})
+        
+    output_filename = f'cropped_{filename}'
+    output_path = os.path.join(OUTPUT_FOLDER, output_filename)
+    
+    if aspect_ratio == '9:16':
+        crop_filter = 'crop=ih*9/16:ih'
+    elif aspect_ratio == '1:1':
+        crop_filter = 'crop=min(iw\,ih):min(iw\,ih)'
+    elif aspect_ratio == '4:3':
+        crop_filter = 'crop=ih*4/3:ih'
+    else:
+        crop_filter = 'crop=iw:ih'
+    
+    command = ['ffmpeg', '-y', '-i', video_path, '-vf', crop_filter, '-c:a', 'copy', output_path]
+    subprocess.run(command)
+    
+    return jsonify({'success': True, 'filename': output_filename})
 
 @app.route('/download-zip/<filename>')
 def download_single(filename):
@@ -126,7 +156,8 @@ def download_all_zip():
 
 @app.route('/download/<filename>')
 def download_file(filename):
-    return send_file(os.path.join(OUTPUT_FOLDER, filename), as_attachment=True)
+    file_path = os.path.join(OUTPUT_FOLDER, filename)
+    return send_file(file_path, as_attachment=True)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
