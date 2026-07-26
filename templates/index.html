@@ -1,0 +1,638 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Splitter & Crop Tool - ZeroUp Rootful</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <div class="bg-indigo-600 p-2 rounded-lg text-white font-bold">
+                    <i class="fa-solid fa-scissors"></i>
+                </div>
+                <span class="text-xl font-bold tracking-tight">ZeroUp<span class="text-indigo-400">Rootful</span></span>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <button onclick="openCoffeeModal()" class="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 px-3 py-1.5 rounded-xl text-xs font-medium transition flex items-center space-x-1.5 shadow-sm">
+                    <span>☕</span>
+                    <span class="hidden sm:inline" data-i18n="coffee_btn">Buy me a coffee</span>
+                </button>
+
+                <button onclick="toggleDrawer()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 p-2.5 rounded-xl text-sm transition flex items-center justify-center shadow-sm">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+
+                <div class="text-xs bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-3 py-1 rounded-full hidden sm:block">
+                    <i class="fa-solid fa-server mr-1"></i>Active 🟢
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Side Drawer Menu -->
+    <div id="side-drawer" class="fixed inset-0 z-50 hidden">
+        <div onclick="toggleDrawer()" class="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
+        
+        <div class="absolute right-0 top-0 bottom-0 w-80 bg-slate-900 border-l border-slate-800 p-6 flex flex-col justify-between shadow-2xl">
+            <div>
+                <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-800">
+                    <div class="flex items-center space-x-2">
+                        <div class="bg-indigo-600 p-1.5 rounded-lg text-white text-sm font-bold">
+                            <i class="fa-solid fa-bars-staggered"></i>
+                        </div>
+                        <span class="font-bold text-base">Menu Tools</span>
+                    </div>
+                    <button onclick="toggleDrawer()" class="text-slate-400 hover:text-white p-1">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-3">
+                    <button onclick="toggleLanguage()" class="w-full flex items-center justify-between bg-slate-800/50 hover:bg-slate-800 p-3 rounded-xl text-xs text-slate-200 transition border border-slate-800">
+                        <div class="flex items-center space-x-3">
+                            <i class="fa-solid fa-globe text-indigo-400"></i>
+                            <span data-i18n="lang_menu_label">Switch Language (KH / EN)</span>
+                        </div>
+                        <span id="current-lang-badge" class="bg-indigo-600 text-white px-2 py-0.5 rounded text-[10px] font-bold">EN</span>
+                    </button>
+
+                    <button onclick="switchTool('splitter'); toggleDrawer();" id="menu-btn-splitter" class="w-full flex items-center space-x-3 bg-indigo-600/20 text-indigo-400 p-3 rounded-xl text-xs font-semibold transition border border-indigo-500/30">
+                        <i class="fa-solid fa-scissors"></i>
+                        <span>Video Splitter & Cutter</span>
+                    </button>
+
+                    <button onclick="switchTool('crop'); toggleDrawer();" id="menu-btn-crop" class="w-full flex items-center space-x-3 bg-slate-800/50 hover:bg-slate-800 p-3 rounded-xl text-xs text-slate-200 transition border border-slate-800">
+                        <i class="fa-solid fa-crop text-amber-400"></i>
+                        <span>Crop Video Online ✂️</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="text-center text-[10px] text-slate-500 pt-4 border-t border-slate-800">
+                ZeroUp Rootful &bull; v1.0.0
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Container -->
+    <main class="max-w-4xl mx-auto px-4 py-10 flex-grow w-full">
+        
+        <!-- TOOL 1: VIDEO SPLITTER -->
+        <div id="tool-splitter-container" class="space-y-6">
+            <div class="text-center mb-10">
+                <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight mb-3" data-i18n="hero_title">
+                    Free Online Video Splitter
+                </h1>
+                <p class="text-slate-400 max-w-xl mx-auto text-sm md:text-base" data-i18n="hero_desc">
+                    Cut one video into multiple separate clips by equal parts, fixed duration, or custom split points.
+                </p>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-6">
+                <div id="upload-section" class="border-2 border-dashed border-slate-700 hover:border-indigo-500 transition rounded-xl p-10 text-center cursor-pointer bg-slate-950/50">
+                    <input type="file" id="video-file-input" accept="video/*" class="hidden">
+                    <div class="w-16 h-16 bg-indigo-600/10 text-indigo-400 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                    </div>
+                    <h3 class="font-semibold text-lg mb-1" data-i18n="upload_title">Choose a video or drag it here</h3>
+                    <p class="text-slate-500 text-xs mb-4" data-i18n="upload_formats">Supports MP4, WebM, MOV, MKV, AVI, FLV</p>
+                    <button type="button" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/20" data-i18n="browse_btn">
+                        Browse Files
+                    </button>
+                </div>
+
+                <div id="editor-section" class="hidden space-y-6">
+                    <div class="flex flex-col md:flex-row gap-6">
+                        <div class="w-full md:w-1/2 bg-black rounded-xl overflow-hidden flex items-center justify-center relative border border-slate-800 aspect-video">
+                            <video id="video-preview" class="h-full w-full object-contain" controls></video>
+                        </div>
+
+                        <div class="w-full md:w-1/2 flex flex-col justify-between space-y-4">
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <span id="file-name" class="font-medium text-sm truncate max-w-[220px]">filename.mp4</span>
+                                    <button onclick="resetApp()" class="text-xs text-indigo-400 hover:underline" data-i18n="change_file">Change file</button>
+                                </div>
+                                <div class="text-xs text-slate-400 space-y-1 bg-slate-950 p-3 rounded-lg border border-slate-800">
+                                    <p><span data-i18n="lbl_duration">Duration</span>: <span id="file-duration" class="text-slate-200">00:00</span></p>
+                                    <p><span data-i18n="lbl_status">Status</span>: <span class="text-emerald-400 font-medium" data-i18n="lbl_ready">Ready to split</span></p>
+                                </div>
+                            </div>
+
+                            <div class="space-y-3">
+                                <label class="text-xs font-semibold uppercase tracking-wider text-slate-400" data-i18n="split_mode_label">Split Mode</label>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <button type="button" onclick="setMode('equal')" id="mode-equal-btn" class="mode-btn bg-indigo-600 text-white text-xs py-2 rounded-lg font-medium transition" data-i18n="mode_equal">Equal Split</button>
+                                    <button type="button" onclick="setMode('duration')" id="mode-duration-btn" class="mode-btn bg-slate-800 text-slate-300 text-xs py-2 rounded-lg font-medium transition" data-i18n="mode_duration">Split by Duration</button>
+                                    <button type="button" onclick="setMode('custom')" id="mode-custom-btn" class="mode-btn bg-slate-800 text-slate-300 text-xs py-2 rounded-lg font-medium transition" data-i18n="mode_custom">Custom Points</button>
+                                </div>
+
+                                <div id="mode-params-panel" class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-sm space-y-3">
+                                    <div id="param-equal" class="space-y-2">
+                                        <div class="flex justify-between items-center text-xs text-slate-400">
+                                            <span data-i18n="equal_parts_label">Number of Segments:</span>
+                                            <span id="equal-parts-val" class="text-indigo-400 font-bold">3 segments</span>
+                                        </div>
+                                        <div class="flex items-center space-x-2">
+                                            <button type="button" onclick="adjustSegments(-1)" class="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg border border-slate-700 font-bold">-</button>
+                                            <input type="number" id="equal-parts-input" min="2" max="30" value="3" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-center text-sm font-bold text-white" oninput="updateSegmentsInput(this.value)">
+                                            <button type="button" onclick="adjustSegments(1)" class="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg border border-slate-700 font-bold">+</button>
+                                        </div>
+                                    </div>
+
+                                    <div id="param-duration" class="hidden space-y-2">
+                                        <div class="flex justify-between text-xs text-slate-400">
+                                            <span data-i18n="duration_parts_label">Duration per clip (seconds):</span>
+                                            <span id="duration-val" class="text-indigo-400 font-bold">60s</span>
+                                        </div>
+                                        <input type="number" id="duration-input" value="60" min="5" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-200" oninput="document.getElementById('duration-val').textContent = this.value + 's'; updatePreviewTable();">
+                                    </div>
+
+                                    <div id="param-custom" class="hidden space-y-2">
+                                        <label class="text-xs text-slate-400 block" data-i18n="custom_parts_label">Split timestamps (seconds, comma-separated):</label>
+                                        <input type="text" id="custom-input" placeholder="e.g. 30, 90, 150" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-200" oninput="updatePreviewTable()">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-2 pt-2">
+                                <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Split Preview (<span id="preview-count">3 segments</span>)</label>
+                                <div id="preview-table" class="bg-slate-950 rounded-xl border border-slate-800 max-h-40 overflow-y-auto p-2 space-y-1.5 text-xs font-mono"></div>
+                            </div>
+
+                            <div class="space-y-2 pt-2">
+                                <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Output Format</label>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <button type="button" onclick="setFormat('mp4')" id="format-mp4-btn" class="format-btn p-2.5 rounded-xl border border-indigo-500 bg-indigo-600/10 text-left transition flex items-center justify-between">
+                                        <div><p class="font-bold text-xs text-white">MP4</p></div>
+                                        <i class="fa-solid fa-circle-check text-indigo-400 text-sm"></i>
+                                    </button>
+                                    <button type="button" onclick="setFormat('webm')" id="format-webm-btn" class="format-btn p-2.5 rounded-xl border border-slate-800 bg-slate-950 text-left transition flex items-center justify-between">
+                                        <div><p class="font-bold text-xs text-white">WebM</p></div>
+                                        <i class="fa-solid fa-circle text-slate-700 text-sm"></i>
+                                    </button>
+                                    <button type="button" onclick="setFormat('mkv')" id="format-mkv-btn" class="format-btn p-2.5 rounded-xl border border-slate-800 bg-slate-950 text-left transition flex items-center justify-between">
+                                        <div><p class="font-bold text-xs text-white">MKV</p></div>
+                                        <i class="fa-solid fa-circle text-slate-700 text-sm"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" onclick="startSplitting()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-3 rounded-xl transition shadow-lg shadow-indigo-600/20 flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-scissors"></i>
+                        <span data-i18n="start_split_btn">Start Splitting Video</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TOOL 2: CROP VIDEO ONLINE -->
+        <div id="tool-crop-container" class="hidden space-y-6">
+            <div class="text-center mb-10">
+                <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight mb-3 text-amber-400">
+                    <i class="fa-solid fa-crop mr-2"></i> Crop Video Online
+                </h1>
+                <p class="text-slate-400 max-w-xl mx-auto text-sm md:text-base">
+                    Select a preset or custom aspect ratio to crop your video frame (16:9, 9:16, 4:3, 1:1) instantly.
+                </p>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-6 text-center">
+                <div id="crop-upload-section" class="border-2 border-dashed border-slate-700 hover:border-amber-500 transition rounded-xl p-10 cursor-pointer bg-slate-950/50" onclick="document.getElementById('crop-file-input').click()">
+                    <input type="file" id="crop-file-input" accept="video/*" class="hidden" onchange="loadCropVideo(this)">
+                    <div class="w-16 h-16 bg-amber-500/10 text-amber-400 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                    </div>
+                    <h3 class="font-semibold text-lg mb-1">Select video to crop</h3>
+                    <p class="text-slate-500 text-xs mb-4">Supports MP4, WebM, MOV, MKV</p>
+                    <button type="button" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm px-5 py-2.5 rounded-xl transition shadow-lg shadow-amber-500/20">
+                        Choose Video File
+                    </button>
+                </div>
+
+                <!-- Crop Workspace -->
+                <div id="crop-editor-section" class="hidden space-y-6 text-left">
+                    <div class="flex flex-col md:flex-row gap-6 items-center justify-center bg-black p-4 rounded-xl border border-slate-800">
+                        <video id="crop-video-preview" class="max-h-[300px] object-contain" controls></video>
+                    </div>
+
+                    <div class="space-y-3">
+                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Aspect Ratio Presets</label>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <button type="button" onclick="setCropPreset('16:9')" id="preset-16-9" class="crop-preset-btn bg-amber-600 text-white p-3 rounded-xl text-xs font-bold transition border border-amber-500 text-center">
+                                🖥️ 16:9 (Landscape)
+                            </button>
+                            <button type="button" onclick="setCropPreset('9:16')" id="preset-9-16" class="crop-preset-btn bg-slate-800 text-slate-300 p-3 rounded-xl text-xs font-bold transition border border-slate-700 text-center">
+                                📱 9:16 (TikTok/Reels)
+                            </button>
+                            <button type="button" onclick="setCropPreset('1:1')" id="preset-1-1" class="crop-preset-btn bg-slate-800 text-slate-300 p-3 rounded-xl text-xs font-bold transition border border-slate-700 text-center">
+                                ⏹️ 1:1 (Square)
+                            </button>
+                            <button type="button" onclick="setCropPreset('4:3')" id="preset-4-3" class="crop-preset-btn bg-slate-800 text-slate-300 p-3 rounded-xl text-xs font-bold transition border border-slate-700 text-center">
+                                📺 4:3 (Standard)
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="button" onclick="startCropping()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 rounded-xl transition shadow-lg shadow-amber-500/20 flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-crop"></i>
+                        <span>Apply Crop & Download Video</span>
+                    </button>
+                </div>
+
+                <!-- Crop Processing/Result -->
+                <div id="crop-processing-section" class="hidden py-8 space-y-4">
+                    <div id="crop-spinner">
+                        <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-amber-500 border-t-transparent mb-3"></div>
+                        <p class="text-xs text-slate-400">Cropping video on server...</p>
+                    </div>
+                    <div id="crop-result-box" class="hidden space-y-3">
+                        <div class="w-12 h-12 bg-emerald-500/10 text-emerald-400 rounded-full flex items-center justify-center mx-auto text-xl">
+                            <i class="fa-solid fa-check"></i>
+                        </div>
+                        <h3 class="font-bold text-sm">Crop Complete Successfully!</h3>
+                        <a id="crop-download-btn" href="#" class="inline-block bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-6 py-2.5 rounded-xl transition">
+                            <i class="fa-solid fa-download mr-1"></i> Download Cropped Video
+                        </a>
+                        <div>
+                            <button type="button" onclick="resetCropApp()" class="text-xs text-amber-400 hover:underline pt-2">Crop another video</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Processing State (Splitter) -->
+        <div id="processing-section" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center space-y-4">
+            <div id="spinner-container">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent mb-4"></div>
+                <h3 class="text-lg font-semibold" data-i18n="processing_title">Processing video on server...</h3>
+                <p class="text-xs text-slate-400" data-i18n="processing_desc">Please wait while chunks are generated</p>
+            </div>
+            
+            <div id="results-container" class="hidden space-y-4">
+                <div class="w-16 h-16 bg-emerald-500/10 text-emerald-400 rounded-full flex items-center justify-center mx-auto text-2xl">
+                    <i class="fa-solid fa-check"></i>
+                </div>
+                <h3 class="text-lg font-semibold" data-i18n="complete_title">Splitting Complete!</h3>
+                
+                <button type="button" onclick="downloadAllAsZip()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2.5 rounded-xl transition shadow-lg shadow-emerald-600/20 text-xs flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-file-zipper"></i>
+                    <span data-i18n="download_zip_btn">Download All Parts as ZIP</span>
+                </button>
+
+                <div id="download-list" class="space-y-2 max-h-48 overflow-y-auto text-left bg-slate-950 p-3 rounded-xl border border-slate-800"></div>
+
+                <button type="button" onclick="resetApp()" class="text-xs text-indigo-400 hover:underline pt-2">
+                    <i class="fa-solid fa-rotate-left mr-1"></i> <span data-i18n="split_another">Split another video</span>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Coffee Modal Popup -->
+    <div id="coffee-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 text-center relative shadow-2xl space-y-4">
+            <button onclick="closeCoffeeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <div class="w-12 h-12 bg-amber-500/10 text-amber-400 rounded-full flex items-center justify-center mx-auto text-xl">☕</div>
+            <h3 class="text-lg font-bold" data-i18n="modal_title">Support ZeroUp Rootful</h3>
+            <p class="text-slate-400 text-xs" data-i18n="modal_desc">If you find this tool helpful, consider buying me a coffee!</p>
+            <div class="bg-white p-3 rounded-xl inline-block mx-auto border border-slate-700">
+                <img src="https://i.ibb.co/6JqW6g8y/IMG-20260725-200232.png" alt="Coffee QR Code" class="w-32 h-32 mx-auto">
+            </div>
+            <a href="https://pay.ababank.com/oRF8/yk091nvz" target="_blank" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2.5 rounded-xl transition text-xs block" data-i18n="modal_btn">Buy Me a Coffee</a>
+        </div>
+    </div>
+
+    <script>
+        function toggleDrawer() {
+            document.getElementById('side-drawer').classList.toggle('hidden');
+        }
+
+        const translations = {
+            en: {
+                coffee_btn: "Buy me a coffee",
+                lang_menu_label: "Language: English",
+                hero_title: "Free Online Video Splitter",
+                hero_desc: "Cut one video into multiple separate clips by equal parts, fixed duration, or custom split points.",
+                upload_title: "Choose a video or drag it here",
+                upload_formats: "Supports MP4, WebM, MOV, MKV, AVI, FLV",
+                browse_btn: "Browse Files",
+                change_file: "Change file",
+                lbl_duration: "Duration",
+                lbl_status: "Status",
+                lbl_ready: "Ready to split",
+                split_mode_label: "Split Mode",
+                mode_equal: "Equal Split",
+                mode_duration: "Split by Duration",
+                mode_custom: "Custom Points",
+                equal_parts_label: "Number of Segments:",
+                duration_parts_label: "Duration per clip (seconds):",
+                custom_parts_label: "Split timestamps (seconds, comma-separated):",
+                start_split_btn: "Start Splitting Video",
+                processing_title: "Processing video on server...",
+                processing_desc: "Please wait while chunks are generated",
+                complete_title: "Splitting Complete!",
+                download_zip_btn: "Download All Parts as ZIP",
+                split_another: "Split another video",
+                modal_title: "Support ZeroUp Rootful",
+                modal_desc: "If you find this tool helpful, consider buying me a coffee!",
+                modal_btn: "Buy Me a Coffee"
+            },
+            km: {
+                coffee_btn: "កាហ្វេលើកទឹកចិត្ត",
+                lang_menu_label: "ភាសា៖ ខ្មែរ",
+                hero_title: "កម្មវិធីកាត់ត/ពុះវីដេអូអនឡាញឥតគិតថ្លៃ",
+                hero_desc: "កាត់វីដេអូមួយទៅជាវីដេអូខ្លីៗជាច្រើនផ្នែកស្មើគ្នា តាមរយៈថេរវេលាកំណត់ ឬតាមចំណុចចង់កាត់ផ្ទាល់ខ្លួន។",
+                upload_title: "ជ្រើសរើសវីដេអូ ឬអូសដាក់ទីនេះ",
+                upload_formats: "ទ្រទ្រង់ទម្រង់ MP4, WebM, MOV, MKV, AVI, FLV",
+                browse_btn: "ស្វែងរកឯកសារ",
+                change_file: "ដូរវីដេអូ",
+                lbl_duration: "ថេរវេលា",
+                lbl_status: "ស្ថានភាព",
+                lbl_ready: "រួចរាល់ដើម្បីកាត់",
+                split_mode_label: "របៀបកាត់",
+                mode_equal: "ចែកស្មើគ្នា",
+                mode_duration: "តាមថេរវេលា",
+                mode_custom: "កំណត់ចំណុចផ្ទាល់ខ្លួន",
+                equal_parts_label: "ចំនួនផ្នែកសរុប៖",
+                duration_parts_label: "ថេរវេលាក្នុងមួយវីដេអូខ្លី (វិនាទី)៖",
+                custom_parts_label: "កំណត់ទីតាំងវិនាទី (បំបែកដោយក្បៀស)៖",
+                start_split_btn: "ចាប់ផ្តើមកាត់វីដេអូ",
+                processing_title: "កំពុងដំណើរការកាត់វីដេអូនៅលើស៊ើវើ...",
+                processing_desc: "សូមរង់ចាំបន្តិច កំពុងបង្កើតចំណែកវីដេអូ",
+                complete_title: "ការកាត់បានបញ្ចប់ដោយជោគជ័យ!",
+                download_zip_btn: "ទាញយកគ្រប់ផ្នែកជា ZIP",
+                split_another: "កាត់វីដេអូផ្សេងទៀត",
+                modal_title: "គាំទ្រ ZeroUp Rootful",
+                modal_desc: "ប្រសិនបើអ្នកយល់ថាឧបករណ៍នេះមានប្រយោជន៍ សូមជួយកាហ្វេមួយកែវ!",
+                modal_btn: "ទិញកាហ្វេជូនខ្ញុំ"
+            }
+        };
+
+        let currentLang = 'en';
+        function toggleLanguage() {
+            currentLang = currentLang === 'en' ? 'km' : 'en';
+            document.getElementById('current-lang-badge').textContent = currentLang.toUpperCase();
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[currentLang][key]) {
+                    el.textContent = translations[currentLang][key];
+                }
+            });
+            updatePreviewTable();
+        }
+
+        function switchTool(tool) {
+            const splitterContainer = document.getElementById('tool-splitter-container');
+            const cropContainer = document.getElementById('tool-crop-container');
+            const menuSplitter = document.getElementById('menu-btn-splitter');
+            const menuCrop = document.getElementById('menu-btn-crop');
+
+            if(tool === 'splitter') {
+                splitterContainer.classList.remove('hidden');
+                cropContainer.classList.add('hidden');
+                menuSplitter.className = "w-full flex items-center space-x-3 bg-indigo-600/20 text-indigo-400 p-3 rounded-xl text-xs font-semibold transition border border-indigo-500/30";
+                menuCrop.className = "w-full flex items-center space-x-3 bg-slate-800/50 hover:bg-slate-800 p-3 rounded-xl text-xs text-slate-200 transition border border-slate-800";
+            } else {
+                splitterContainer.classList.add('hidden');
+                cropContainer.classList.remove('hidden');
+                menuCrop.className = "w-full flex items-center space-x-3 bg-indigo-600/20 text-indigo-400 p-3 rounded-xl text-xs font-semibold transition border border-indigo-500/30";
+                menuSplitter.className = "w-full flex items-center space-x-3 bg-slate-800/50 hover:bg-slate-800 p-3 rounded-xl text-xs text-slate-200 transition border border-slate-800";
+            }
+        }
+
+        let currentCropFilename = '';
+        let selectedCropRatio = '16:9';
+
+        function loadCropVideo(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                const formData = new FormData();
+                formData.append('video', file);
+
+                fetch('/upload', { method: 'POST', body: formData })
+                .then(res => res.json())
+                .then(data => {
+                    if(data.success) {
+                        currentCropFilename = data.filename;
+                        document.getElementById('crop-video-preview').src = URL.createObjectURL(file);
+                        document.getElementById('crop-upload-section').classList.add('hidden');
+                        document.getElementById('crop-editor-section').classList.remove('hidden');
+                    }
+                });
+            }
+        }
+
+        function setCropPreset(ratio) {
+            selectedCropRatio = ratio;
+            ['16:9', '9:16', '1:1', '4:3'].forEach(r => {
+                const btnId = 'preset-' + r.replace(':', '-');
+                const btn = document.getElementById(btnId);
+                if(btn) {
+                    if(r === ratio) {
+                        btn.className = "crop-preset-btn bg-amber-600 text-white p-3 rounded-xl text-xs font-bold transition border border-amber-500 text-center";
+                    } else {
+                        btn.className = "crop-preset-btn bg-slate-800 text-slate-300 p-3 rounded-xl text-xs font-bold transition border border-slate-700 text-center";
+                    }
+                }
+            });
+        }
+
+        function startCropping() {
+            document.getElementById('crop-editor-section').classList.add('hidden');
+            document.getElementById('crop-processing-section').classList.remove('hidden');
+            document.getElementById('crop-spinner').classList.remove('hidden');
+            document.getElementById('crop-result-box').classList.add('hidden');
+
+            fetch('/crop', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename: currentCropFilename, aspect_ratio: selectedCropRatio })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    document.getElementById('crop-spinner').classList.add('hidden');
+                    document.getElementById('crop-result-box').classList.remove('hidden');
+                    document.getElementById('crop-download-btn').href = `/download/${data.filename}`;
+                }
+            });
+        }
+
+        function resetCropApp() {
+            document.getElementById('crop-file-input').value = '';
+            document.getElementById('crop-processing-section').classList.add('hidden');
+            document.getElementById('crop-upload-section').classList.remove('hidden');
+        }
+
+        function openCoffeeModal() { document.getElementById('coffee-modal').classList.remove('hidden'); }
+        function closeCoffeeModal() { document.getElementById('coffee-modal').classList.add('hidden'); }
+
+        let currentUploadedFileName = '', currentMode = 'equal', currentFormat = 'mp4', currentSegments = [], videoTotalDuration = 0;
+        const uploadSection = document.getElementById('upload-section'), editorSection = document.getElementById('editor-section'), processingSection = document.getElementById('processing-section'), fileInput = document.getElementById('video-file-input'), videoPreview = document.getElementById('video-preview');
+
+        uploadSection.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files[0]) uploadToServer(e.target.files[0]);
+        });
+
+        function uploadToServer(file) {
+            const formData = new FormData();
+            formData.append('video', file);
+            document.getElementById('file-name').textContent = file.name;
+            
+            fetch('/upload', { method: 'POST', body: formData })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    currentUploadedFileName = data.filename;
+                    videoPreview.src = URL.createObjectURL(file);
+                    videoPreview.onloadedmetadata = () => {
+                        videoTotalDuration = videoPreview.duration;
+                        const m = Math.floor(videoTotalDuration / 60), s = Math.floor(videoTotalDuration % 60);
+                        document.getElementById('file-duration').textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
+                        uploadSection.classList.add('hidden');
+                        editorSection.classList.remove('hidden');
+                        updatePreviewTable();
+                    };
+                }
+            });
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            ['equal', 'duration', 'custom'].forEach(m => {
+                const btn = document.getElementById(`mode-${m}-btn`);
+                const param = document.getElementById(`param-${m}`);
+                if(btn && param) {
+                    if(m === mode) {
+                        btn.className = "mode-btn bg-indigo-600 text-white text-xs py-2 rounded-lg font-medium transition";
+                        param.classList.remove('hidden');
+                    } else {
+                        btn.className = "mode-btn bg-slate-800 text-slate-300 text-xs py-2 rounded-lg font-medium transition";
+                        param.classList.add('hidden');
+                    }
+                }
+            });
+            updatePreviewTable();
+        }
+
+        function setFormat(format) {
+            currentFormat = format;
+            ['mp4', 'webm', 'mkv'].forEach(fmt => {
+                const btn = document.getElementById(`format-${fmt}-btn`);
+                if(btn) {
+                    const icon = btn.querySelector('i');
+                    if (fmt === format) {
+                        btn.className = "format-btn p-2.5 rounded-xl border border-indigo-500 bg-indigo-600/10 text-left transition flex items-center justify-between";
+                        if(icon) icon.className = "fa-solid fa-circle-check text-indigo-400 text-sm";
+                    } else {
+                        btn.className = "format-btn p-2.5 rounded-xl border border-slate-800 bg-slate-950 text-left transition flex items-center justify-between";
+                        if(icon) icon.className = "fa-solid fa-circle text-slate-700 text-sm";
+                    }
+                }
+            });
+        }
+
+        function adjustSegments(change) {
+            const input = document.getElementById('equal-parts-input');
+            let val = parseInt(input.value) + change;
+            if (val < 2) val = 2; if (val > 30) val = 30;
+            input.value = val;
+            updateSegmentsInput(val);
+        }
+
+        function updateSegmentsInput(val) {
+            document.getElementById('equal-parts-val').textContent = `${val} segments`;
+            updatePreviewTable();
+        }
+
+        function updatePreviewTable() {
+            const previewTable = document.getElementById('preview-table');
+            if(!previewTable) return;
+            previewTable.innerHTML = '';
+            if (videoTotalDuration <= 0) return;
+            let segmentsData = [];
+            const countInput = document.getElementById('equal-parts-input');
+            const count = countInput ? parseInt(countInput.value) || 3 : 3;
+            const segDuration = videoTotalDuration / count;
+            for (let i = 0; i < count; i++) {
+                segmentsData.push({ start: i * segDuration, end: (i === count - 1) ? videoTotalDuration : (i + 1) * segDuration });
+            }
+            segmentsData.forEach((seg, index) => {
+                const row = document.createElement('div');
+                row.className = 'flex items-center justify-between bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-slate-300';
+                row.innerHTML = `<span class="font-bold text-indigo-400">Part ${index + 1}</span><span>${Math.floor(seg.start)}s &rarr; ${Math.floor(seg.end)}s</span>`;
+                previewTable.appendChild(row);
+            });
+        }
+
+        function startSplitting() {
+            document.getElementById('tool-splitter-container').classList.add('hidden');
+            processingSection.classList.remove('hidden');
+            document.getElementById('spinner-container').classList.remove('hidden');
+            document.getElementById('results-container').classList.add('hidden');
+            
+            let payload = { filename: currentUploadedFileName, mode: currentMode, format: currentFormat };
+            if (currentMode === 'equal') payload.parts = document.getElementById('equal-parts-input').value;
+            else if (currentMode === 'duration') payload.duration = document.getElementById('duration-input').value;
+            else if (currentMode === 'custom') payload.custom_points = document.getElementById('custom-input').value;
+
+            fetch('/split', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('spinner-container').classList.add('hidden');
+                document.getElementById('results-container').classList.remove('hidden');
+                currentSegments = data.segments;
+                const listEl = document.getElementById('download-list');
+                listEl.innerHTML = '';
+                data.segments.forEach(seg => {
+                    listEl.innerHTML += `<div class='flex items-center justify-between bg-slate-900 p-2 rounded text-xs'><span>${seg}</span><a href='/download-zip/${seg}' class='text-indigo-400 underline'>ZIP</a></div>`;
+                });
+            })
+            .catch(err => {
+                alert('Error during processing');
+                resetApp();
+            });
+        }
+
+        function downloadAllAsZip() {
+            fetch('/download-all-zip', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ segments: currentSegments })
+            })
+            .then(res => res.json())
+            .then(data => { if(data.success) window.location.href = `/download/${data.zip_filename}`; });
+        }
+
+        function resetApp() {
+            fileInput.value = '';
+            videoPreview.src = '';
+            processingSection.classList.add('hidden');
+            document.getElementById('tool-splitter-container').classList.remove('hidden');
+            uploadSection.classList.remove('hidden');
+            editorSection.classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
+
+```
