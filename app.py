@@ -3,14 +3,12 @@ import os
 import subprocess
 import zipfile
 import tempfile
-import shutil
 
 app = Flask(__name__)
 
-# កំណត់ទំហំអតិបរមានៃការ Upload ដល់ 2GB (2 * 1024 * 1024 * 1024 bytes)
-app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024 * 1024
+# កំណត់ទំហំអតិបរមានៃការ Upload ដល់ 10GB ធំទូលាយ
+app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024 * 1024
 
-# បង្កើត Temporary Directory សុវត្ថិភាពសម្រាប់ដំណើរការបណ្តោះអាសន្ន
 TEMP_DIR = tempfile.mkdtemp()
 UPLOAD_FOLDER = os.path.join(TEMP_DIR, 'uploads')
 OUTPUT_FOLDER = os.path.join(TEMP_DIR, 'outputs')
@@ -43,6 +41,12 @@ def split_video():
     mode = data.get('mode', 'equal')
     output_format = data.get('format', 'mp4').lower()
     
+    # ការកំណត់ការសារ៉េ Anti-Copyright ពីសំណាក់អ្នកប្រើប្រាស់
+    enable_anti_copyright = data.get('anti_copyright', True)
+    mirror_video = data.get('mirror', True)          # បញ្ច្រាសឆ្វេងស្តាំ
+    brightness_val = data.get('brightness', 0.03)    # សារ៉េពន្លឺ (ឧទាហរណ៍: -0.1 ដល់ 0.1)
+    audio_tempo = data.get('tempo', 1.03)            # សារ៉េល្បឿនសំឡេង (ឧទាហរណ៍: 0.95 ដល់ 1.05)
+    
     video_path = os.path.join(UPLOAD_FOLDER, filename)
     
     if not os.path.exists(video_path):
@@ -50,8 +54,29 @@ def split_video():
 
     ext = output_format if output_format in ['mp4', 'webm', 'mkv'] else 'mp4'
 
+    # បង្កើត Filter Strings តាមការសារ៉េ
+    video_filters = []
+    audio_filters = []
+
+    if enable_anti_copyright:
+        if mirror_video:
+            video_filters.append("hflip")
+        if brightness_val != 0:
+            video_filters.append(f"eq=brightness={brightness_val}:saturation=1.05")
+        if audio_tempo != 1.0:
+            audio_filters.append(f"atempo={audio_tempo}")
+
+    vf_str = ",".join(video_filters) if video_filters else None
+    af_str = ",".join(audio_filters) if audio_filters else None
+
     if mode == 'equal':
-        parts = int(data.get('parts', 3))
+        try:
+            parts = int(data.get('parts', 3))
+            if parts < 1:
+                parts = 1
+        except:
+            parts = 3
+
         probe_command = [
             'ffprobe', '-v', 'error', '-show_entries',
             'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', video_path
@@ -61,25 +86,43 @@ def split_video():
             duration = float(result.stdout.strip())
         except Exception:
             duration = 60.0
+            
         segment_duration = duration / parts
         output_pattern = os.path.join(OUTPUT_FOLDER, f'part_%03d.{ext}')
         
-        command = [
-            'ffmpeg', '-y', '-i', video_path, '-c', 'copy', 
+        command = ['ffmpeg', '-y', '-i', video_path]
+        if vf_str:
+            command.extend(['-vf', vf_str])
+        if af_str:
+            command.extend(['-af', af_str])
+        
+        # ប្រសិនបើគ្មានដាក់ Filter អ្វីសោះ អាចប្រើ -c copy បានដើម្បីឱ្យលឿន
+        if not vf_str and not af_str:
+            command.extend(['-c', 'copy'])
+            
+        command.extend([
             '-segment_time', str(segment_duration), 
             '-f', 'segment', '-reset_timestamps', '1', output_pattern
-        ]
+        ])
         subprocess.run(command)
 
     elif mode == 'duration':
-        seg_duration = str(data.get('duration', '60'))
+        try:
+            seg_duration = str(float(data.get('duration', '60')))
+        except:
+            seg_duration = '60'
+            
         output_pattern = os.path.join(OUTPUT_FOLDER, f'part_%03d.{ext}')
         
-        command = [
-            'ffmpeg', '-y', '-i', video_path, '-c', 'copy', 
+        command = ['ffmpeg', '-y', '-i', video_path]
+        if vf_str: command.extend(['-vf', vf_str])
+        if af_str: command.extend(['-af', af_str])
+        if not vf_str and not af_str: command.extend(['-c', 'copy'])
+        
+        command.extend([
             '-segment_time', seg_duration, 
             '-f', 'segment', '-reset_timestamps', '1', output_pattern
-        ]
+        ])
         subprocess.run(command)
 
     elif mode == 'custom':
@@ -95,12 +138,19 @@ def split_video():
             points.append(None)
             for i, p in enumerate(points):
                 out_file = os.path.join(OUTPUT_FOLDER, f'custom_part_{i+1:03d}.{ext}')
+                cmd = ['ffmpeg', '-y', '-ss', str(start)]
                 if p is not None:
-                    cmd = ['ffmpeg', '-y', '-ss', str(start), '-to', str(p), '-i', video_path, '-c', 'copy', out_file]
-                    start = p
-                else:
-                    cmd = ['ffmpeg', '-y', '-ss', str(start), '-i', video_path, '-c', 'copy', out_file]
+                    cmd.extend(['-to', str(p)])
+                cmd.extend(['-i', video_path])
+                
+                if vf_str: cmd.extend(['-vf', vf_str])
+                if af_str: cmd.extend(['-af', af_str])
+                if not vf_str and not af_str: cmd.extend(['-c', 'copy'])
+                
+                cmd.append(out_file)
                 subprocess.run(cmd)
+                if p is not None:
+                    start = p
 
     files_list = sorted([f for f in os.listdir(OUTPUT_FOLDER) if f.startswith('part_') or f.startswith('custom_')])
     
@@ -128,7 +178,8 @@ def crop_video():
     else:
         crop_filter = 'crop=iw:ih'
     
-    command = ['ffmpeg', '-y', '-i', video_path, '-vf', crop_filter, '-c:a', 'copy', output_path]
+    full_filter = f"{crop_filter},hflip"
+    command = ['ffmpeg', '-y', '-i', video_path, '-vf', full_filter, '-af', 'atempo=1.03', output_path]
     subprocess.run(command)
     
     return jsonify({'success': True, 'filename': output_filename})
