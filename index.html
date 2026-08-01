@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VIDEO-MMO Beta - YouTube Downloader</title>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7048439065672134" crossorigin="anonymous"></script>
+    <style>
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background: #ffffff;
+            padding: 40px 30px;
+            border-radius: 24px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+            width: 100%;
+            max-width: 420px;
+            text-align: center;
+            box-sizing: border-box;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            margin-bottom: 20px;
+        }
+        .icon-box {
+            background: linear-gradient(135deg, #fff0f0 100%, #ffe3e3 0%);
+            width: 75px;
+            height: 75px;
+            margin: 0 auto 20px auto;
+            border-radius: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 8px 20px rgba(255, 0, 0, 0.12);
+        }
+        .icon-box svg {
+            width: 40px;
+            height: 40px;
+            fill: #ff0000;
+        }
+        h2 {
+            color: #111827;
+            font-size: 26px;
+            margin: 0 0 8px 0;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+        p.subtitle {
+            color: #6b7280;
+            font-size: 14px;
+            margin-bottom: 30px;
+            font-weight: 500;
+        }
+        .input-group {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 16px 18px;
+            border: 2px solid #e5e7eb;
+            border-radius: 14px;
+            box-sizing: border-box;
+            font-size: 15px;
+            outline: none;
+            transition: all 0.3s ease;
+            background-color: #f9fafb;
+            color: #1f2937;
+        }
+        input[type="text"]:focus {
+            border-color: #ff0000;
+            background-color: #ffffff;
+            box-shadow: 0 0 0 4px rgba(255, 0, 0, 0.1);
+        }
+        button {
+            background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%);
+            color: white;
+            border: none;
+            padding: 16px;
+            width: 100%;
+            border-radius: 14px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: 700;
+            box-shadow: 0 6px 20px rgba(255, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 0, 0, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        #result {
+            margin-top: 25px;
+            font-size: 14px;
+        }
+        .loading {
+            color: #4b5563;
+            font-weight: 500;
+            animation: pulse 1.5s infinite;
+        }
+        .error {
+            color: #dc2626;
+            background: #fef2f2;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #fee2e2;
+            font-weight: 500;
+        }
+        .success {
+            color: #16a34a;
+            background: #f0fdf4;
+            padding: 16px;
+            border-radius: 14px;
+            border: 1px solid #dcfce7;
+            word-break: break-all;
+        }
+        .success a {
+            display: inline-block;
+            margin-top: 12px;
+            color: #ffffff;
+            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+            padding: 10px 20px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 700;
+            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+            transition: all 0.2s ease;
+        }
+        .success a:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 15px rgba(22, 163, 74, 0.4);
+        }
+        .ads-container {
+            width: 100%;
+            max-width: 420px;
+            margin-top: 10px;
+            text-align: center;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="icon-box">
+            <svg viewBox="0 0 24 24">
+                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+            </svg>
+        </div>
+
+        <h2>YouTube Downloader</h2>
+        <p class="subtitle">Dav : ZeroUp Rootful</p>
+        
+        <div class="input-group">
+            <input type="text" id="youtubeUrl" placeholder="Paste YouTube link here...">
+        </div>
+        <button onclick="downloadVideo()">Get Download Link</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <div class="ads-container">
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7048439065672134"
+             crossorigin="anonymous"></script>
+        <ins class="adsbygoogle"
+             style="display:block"
+             data-ad-client="ca-pub-7048439065672134"
+             data-ad-slot="YOUR_AD_SLOT_ID"
+             data-ad-format="auto"
+             data-full-width-responsive="true"></ins>
+        <script>
+             (adsbygoogle = window.adsbygoogle || []).push({});
+        </script>
+    </div>
+
+    <script>
+        async function downloadVideo() {
+            const url = document.getElementById('youtubeUrl').value;
+            const resultDiv = document.getElementById('result');
+            
+            if (!url) {
+                resultDiv.innerHTML = '<div class="error">Please enter a YouTube video URL first!</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="loading">⏳ Generating fast link...</div>';
+            
+            try {
+                const response = await fetch('/download-youtube', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ url: url })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `<div class="success">
+                                            <b style="font-size: 15px;">🎉 Ready!</b><br>
+                                            <a href="${data.download_url}" target="_blank" download>📥 Download Now</a>
+                                           </div>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">Failed: ${data.error}</div>`;
+                }
+            } catch (err) {
+                resultDiv.innerHTML = `<div class="error">Network error connecting to server!</div>`;
+            }
+        }
+    </script>
+
+</body>
+</html>
