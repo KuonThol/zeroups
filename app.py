@@ -24,15 +24,12 @@ def download_youtube():
     
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            # ดึงข้อมูลมาแบบไม่ต้อง Download ไฟล์เก็บไว้ใน Server
             info_dict = ydl.extract_info(youtube_url, download=False)
             
-            # យក Direct Video URL ផ្ទាល់ពី YouTube CDN
             direct_url = info_dict.get('url')
             video_title = info_dict.get('title', 'video')
             
             if not direct_url:
-                # ករណី yt-dlp បែងចែក Audio/Video ដាច់ពីគ្នា
                 formats = info_dict.get('formats', [])
                 for f in formats:
                     if f.get('url') and f.get('vcodec') != 'none' and f.get('acodec') != 'none':
